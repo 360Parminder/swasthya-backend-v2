@@ -40,6 +40,9 @@ app.use("/public", express.static("public"));
 app.use("/status", (req, res) => {
   res.send(`Swasthya Server is up and running..... on port ${process.env.PORT}`);
 });
+app.use("/health",()=>{
+  res.send("Server is live and connected to MongoDB")
+});
 
 app.use("/user", user);
 app.use("/connection", connection);
