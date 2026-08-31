@@ -1,0 +1,54 @@
+{
+  "name": "swasthya",
+  "version": "1.0.0",
+  "description": "---",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx nodemon"
+  },
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BearerOP/heal-app.git"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
+    "circular-json": "^0.5.9",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "ejs-lint": "^2.0.0",
+    "express": "^4.19.2",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.1.1",
+    "googleapis": "^137.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongo": "^0.1.0",
+    "mongodb": "^6.7.0",
+    "mongoose": "^8.4.0",
+    "multer": "^1.4.5-lts.1",
+    "node-schedule": "^2.1.1",
+    "nodemon": "^3.1.1",
+    "otp-generation": "^1.0.5",
+    "redis": "^4.7.0",
+    "short-unique-id": "^5.2.0",
+    "swagger-autogen": "^2.23.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "telesignsdk": "^3.0.0",
+    "util": "^0.12.5"
+  },
+  "author": "BearerOP",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BearerOP/heal-app/issues"
+  },
+  "homepage": "https://github.com/BearerOP/heal-app#readme",
+  "devDependencies": {
+    "patch-package": "^8.0.1"
+  }
+}
