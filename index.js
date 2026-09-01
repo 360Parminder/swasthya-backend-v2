@@ -24,6 +24,8 @@ const leaderboard = require("./src/routes/leaderboard_routes.js");
 const water = require("./src/routes/water_routes.js");
 const dashboard = require("./src/routes/dashboard_routes.js");
 
+const { healthRouter, statusRouter } = require("./src/routes/health_routes.js");
+
 // // CORS configuration
 // const corsOptions = {
 //   origin: ["https://theslug.netlify.app", "http://localhost:5173"],
@@ -37,12 +39,8 @@ const dashboard = require("./src/routes/dashboard_routes.js");
 app.use(express.static(path.join(__dirname, "/public")));
 app.use("/public", express.static("public"));
 
-app.use("/status", (req, res) => {
-  res.send(`Swasthya Server is up and running..... on port ${process.env.PORT}`);
-});
-app.use("/health",()=>{
-  res.send("Server is live and connected to MongoDB")
-});
+app.use("/health", healthRouter);
+app.use("/status", statusRouter);
 
 app.use("/user", user);
 app.use("/connection", connection);
