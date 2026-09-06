@@ -534,3 +534,66 @@ exports.findUserById = async (req, res) => {
     };
   }
 };
+
+exports.remove_Connection = async (req, res) => {
+  try {
+    const user = req.user;
+    const connectionId = req.body?.connectionId || req.query?.connectionId;
+
+    if (!connectionId) {
+      return {
+        status: 400,
+        success: false,
+        message: "Connection ID is required",
+      };
+    }
+
+    let targetUser = null;
+    if (mongoose.Types.ObjectId.isValid(connectionId)) {
+      targetUser = await user_model.findById(connectionId);
+    }
+    if (!targetUser) {
+      targetUser = await user_model.findOne({ userId: connectionId });
+    }
+
+    if (!targetUser) {
+      return {
+        status: 404,
+        success: false,
+        message: "Connection member not found",
+      };
+    }
+
+    const targetUserIdStr = targetUser._id.toString();
+    const currentUserIdStr = user._id.toString();
+
+    // Remove from current user's connections
+    if (Array.isArray(user.connections)) {
+      user.connections = user.connections.filter(
+        (cId) => cId && cId.toString() !== targetUserIdStr
+      );
+      await user.save();
+    }
+
+    // Remove from target user's connections
+    if (Array.isArray(targetUser.connections)) {
+      targetUser.connections = targetUser.connections.filter(
+        (cId) => cId && cId.toString() !== currentUserIdStr
+      );
+      await targetUser.save();
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: "Connection removed successfully",
+    };
+  } catch (error) {
+    console.error("Error removing connection:", error);
+    return {
+      status: 500,
+      success: false,
+      message: error.message || "Internal Server Error",
+    };
+  }
+};

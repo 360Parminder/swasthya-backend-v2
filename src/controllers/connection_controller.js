@@ -1,4 +1,4 @@
-const { send_request, alluser, allRequest, update_Request, findUserById, allConnections, cancel_Request } = require("../services/connection_service.js");
+const { send_request, alluser, allRequest, update_Request, findUserById, allConnections, cancel_Request, remove_Connection } = require("../services/connection_service.js");
 
 exports.cancel_Request = async (req, res) => {
   try {
@@ -116,4 +116,19 @@ exports.findUserById = async (req, res) => {
   }
 };
 
-
+exports.remove_Connection = async (req, res) => {
+  try {
+    const data = await remove_Connection(req, res);
+    if (data.success) {
+      res.status(200).json(data);
+    } else {
+      res.status(data.status || 400).json(data);
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: error.message,
+    });
+  }
+};
