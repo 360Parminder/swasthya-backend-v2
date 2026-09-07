@@ -420,11 +420,11 @@ exports.profile_update = async (req, res) => {
       message: "User not found",
     };
   }
-  const { username, height, weight, dob, food_preference } = req.body;
+  const { username, name, height, weight, dob, food_preference } = req.body;
 
   try {
     if (username) {
-      const existingUser = await user_model.findOne({ username: username });
+      const existingUser = await user_model.findOne({ username: username, _id: { $ne: user._id } });
       if (existingUser) {
         return {
           success: false,
@@ -434,6 +434,7 @@ exports.profile_update = async (req, res) => {
     }
     const updatedFields = {};
     if (username) updatedFields.username = username;
+    if (name) updatedFields.name = name;
     if (height) updatedFields.height = height;
     if (weight) updatedFields.weight = weight;
     if (food_preference) updatedFields.food_preference = food_preference;

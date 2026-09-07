@@ -21,15 +21,8 @@ exports.getCurrentSleep = async (req) => {
 
     let sleepData = await sleep_model.findOne({ user_id: user._id });
 
-    // If no sleep record exists yet, initialize baseline data so user has an active session
+    // Initialize schedule if user has no document yet, but do NOT seed fake records
     if (!sleepData) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(22, 45, 0, 0); // 10:45 PM
-
-      const todayWake = new Date();
-      todayWake.setHours(6, 33, 0, 0); // 06:33 AM
-
       sleepData = new sleep_model({
         user_id: user._id,
         schedule: {
@@ -40,24 +33,20 @@ exports.getCurrentSleep = async (req) => {
           reminderLeadTime: 45,
           smartAlarmEnabled: true,
         },
-        record: [
-          {
-            sleepTime: yesterday,
-            wakeTime: todayWake,
-            sleepQuality: "good",
-            duration: { hour: 7, minute: 48 },
-            score: 88,
-            efficiency: 94,
-            stages: {
-              deepMinutes: 112,
-              remMinutes: 105,
-              coreMinutes: 221,
-              awakeMinutes: 30,
-            },
-            cycles: 5,
-          },
-        ],
+        record: [],
       });
+      await sleepData.save();
+    } else if (
+      sleepData.record &&
+      sleepData.record.length === 1 &&
+      sleepData.record[0].score === 88 &&
+      sleepData.record[0].efficiency === 94 &&
+      sleepData.record[0].duration?.hour === 7 &&
+      sleepData.record[0].duration?.minute === 48 &&
+      sleepData.record[0].stages?.deepMinutes === 112
+    ) {
+      // Clean up legacy auto-seeded fake record so user starts with actual logged data
+      sleepData.record = [];
       await sleepData.save();
     }
 
@@ -113,7 +102,12 @@ exports.saveSleepRecord = async (req) => {
     } = req.body;
 
     const sleepDate = sleepTime ? new Date(sleepTime) : new Date();
-    const wakeDate = wakeTime ? new Date(wakeTime) : new Date();
+    let wakeDate = wakeTime ? new Date(wakeTime) : new Date();
+
+    // If wake time is earlier or same as sleep time (e.g. 11 PM to 7 AM), advance to next day
+    if (wakeDate <= sleepDate) {
+      wakeDate = new Date(wakeDate.getTime() + 24 * 60 * 60 * 1000);
+    }
 
     let computedDuration = duration;
     if (!computedDuration && wakeDate > sleepDate) {
@@ -125,6 +119,45 @@ exports.saveSleepRecord = async (req) => {
       computedDuration = { hour: 7, minute: 30 };
     }
 
+    const totalMinutes = (computedDuration.hour || 0) * 60 + (computedDuration.minute || 0);
+
+    // Calculate realistic score if not provided
+    let calculatedScore = Number(score);
+    if (!calculatedScore || isNaN(calculatedScore)) {
+      // Optimal duration is 7 - 9 hours (420 - 540 minutes)
+      let baseScore = 80;
+      if (totalMinutes >= 420 && totalMinutes <= 540) {
+        baseScore = 88;
+      } else if (totalMinutes >= 360 && totalMinutes < 420) {
+        baseScore = 75;
+      } else if (totalMinutes > 540 && totalMinutes <= 600) {
+        baseScore = 82;
+      } else {
+        baseScore = Math.max(45, Math.min(70, Math.round((totalMinutes / 480) * 75)));
+      }
+
+      const qualityModifiers = {
+        excellent: 10,
+        good: 5,
+        fair: -5,
+        poor: -18,
+      };
+      const modifier = qualityModifiers[sleepQuality?.toLowerCase()] || 0;
+      calculatedScore = Math.min(100, Math.max(40, baseScore + modifier));
+    }
+
+    // Calculate realistic efficiency if not provided
+    let calculatedEfficiency = Number(efficiency);
+    if (!calculatedEfficiency || isNaN(calculatedEfficiency)) {
+      const effMap = {
+        excellent: 96,
+        good: 91,
+        fair: 81,
+        poor: 68,
+      };
+      calculatedEfficiency = effMap[sleepQuality?.toLowerCase()] || 88;
+    }
+
     let sleepData = await sleep_model.findOne({ user_id: user._id });
     if (!sleepData) {
       sleepData = new sleep_model({
@@ -133,20 +166,33 @@ exports.saveSleepRecord = async (req) => {
       });
     }
 
+    // Clean up legacy fake dummy record if it was the only record
+    if (
+      sleepData.record &&
+      sleepData.record.length === 1 &&
+      sleepData.record[0].score === 88 &&
+      sleepData.record[0].efficiency === 94 &&
+      sleepData.record[0].duration?.hour === 7 &&
+      sleepData.record[0].duration?.minute === 48 &&
+      sleepData.record[0].stages?.deepMinutes === 112
+    ) {
+      sleepData.record = [];
+    }
+
     const newEntry = {
       sleepTime: sleepDate,
       wakeTime: wakeDate,
       sleepQuality,
       duration: computedDuration,
-      score: Number(score) || 85,
-      efficiency: Number(efficiency) || 92,
+      score: calculatedScore,
+      efficiency: calculatedEfficiency,
       stages: stages || {
-        deepMinutes: Math.round((computedDuration.hour * 60 + computedDuration.minute) * 0.24),
-        remMinutes: Math.round((computedDuration.hour * 60 + computedDuration.minute) * 0.22),
-        coreMinutes: Math.round((computedDuration.hour * 60 + computedDuration.minute) * 0.47),
-        awakeMinutes: Math.round((computedDuration.hour * 60 + computedDuration.minute) * 0.07),
+        deepMinutes: Math.round(totalMinutes * 0.23),
+        remMinutes: Math.round(totalMinutes * 0.22),
+        coreMinutes: Math.round(totalMinutes * 0.48),
+        awakeMinutes: Math.max(10, Math.round(totalMinutes * 0.07)),
       },
-      cycles: Number(cycles) || Math.round((computedDuration.hour * 60 + computedDuration.minute) / 90),
+      cycles: Number(cycles) || Math.max(1, Math.round(totalMinutes / 90)),
     };
 
     sleepData.record.push(newEntry);
@@ -283,8 +329,27 @@ exports.getSleepHistory = async (req) => {
       };
     }
 
+    // Filter out any legacy seeded dummy record
+    const validRecords = sleepData.record.filter((r) => {
+      const isLegacyDummy =
+        r.score === 88 &&
+        r.efficiency === 94 &&
+        r.duration?.hour === 7 &&
+        r.duration?.minute === 48 &&
+        r.stages?.deepMinutes === 112;
+      return !isLegacyDummy;
+    });
+
+    if (validRecords.length === 0) {
+      return {
+        success: true,
+        message: "No sleep history found",
+        data: [],
+      };
+    }
+
     // Return last 14 entries sorted ascending by sleepTime
-    const sorted = [...sleepData.record].sort(
+    const sorted = [...validRecords].sort(
       (a, b) => new Date(a.sleepTime) - new Date(b.sleepTime)
     );
     const recent = sorted.slice(-14);

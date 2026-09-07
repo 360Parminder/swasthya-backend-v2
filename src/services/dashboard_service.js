@@ -58,12 +58,24 @@ exports.get_dashboard_data = async (req, res) => {
     const sleepData = await Sleep.findOne({ user_id: user._id });
     let latestSleep = null;
     if (sleepData && sleepData.record && sleepData.record.length > 0) {
-      latestSleep =
-        sleepData.record.find((entry) => {
-          let sleepDate = new Date(entry.sleepTime);
-          sleepDate.setHours(5, 30, 0, 0);
-          return sleepDate.toISOString().split("T")[0] === formattedCurrentDate;
-        }) || sleepData.record[sleepData.record.length - 1];
+      const validRecords = sleepData.record.filter((r) => {
+        const isLegacyDummy =
+          r.score === 88 &&
+          r.efficiency === 94 &&
+          r.duration?.hour === 7 &&
+          r.duration?.minute === 48 &&
+          r.stages?.deepMinutes === 112;
+        return !isLegacyDummy;
+      });
+
+      if (validRecords.length > 0) {
+        latestSleep =
+          validRecords.find((entry) => {
+            let sleepDate = new Date(entry.sleepTime);
+            sleepDate.setHours(5, 30, 0, 0);
+            return sleepDate.toISOString().split("T")[0] === formattedCurrentDate;
+          }) || validRecords[validRecords.length - 1];
+      }
     }
 
     // 3. Get Water Data
