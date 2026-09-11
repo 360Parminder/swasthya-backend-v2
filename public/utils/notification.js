@@ -70,6 +70,12 @@ const sendNotification = async (token, message, title = "Notification", data = {
         title: title || "Notification",
         body: message,
       },
+      android: {
+        notification: {
+          icon: "ic_notification",
+          color: "#2563EB",
+        },
+      },
       data: stringifiedData,
     });
 
