@@ -7,7 +7,6 @@ const { getdata } = require("../Utils/redis");
 const { sendOtp, verifyOtp } = require("../Utils/sendOtp");
 const { getOtp } = require("../Utils/mapstore");
 const { generateUserId } = require("../Utils/generate");
-const { name } = require("ejs");
 
 exports.user_login = async (req, res) => {
   try {
@@ -92,7 +91,9 @@ exports.user_register = async (req, res) => {
     food_preference,
     weightUnit,
     heightUnit,
-    countryCode
+    countryCode,
+    fcm_token,
+    notificationToken,
   } = req.body;
   console.log(req.body);
 
@@ -148,22 +149,6 @@ exports.user_register = async (req, res) => {
       };
     }
 
-    const {
-      name,
-      mobile,
-      email,
-      password,
-      weight,
-      height,
-      dob,
-      gender,
-      food_preference,
-      weightUnit,
-      heightUnit,
-      countryCode,
-      fcm_token,
-      notificationToken,
-    } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
