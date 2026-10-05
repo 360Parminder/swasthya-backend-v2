@@ -72,6 +72,8 @@ exports.user_login = async (req, res) => {
       user: {
         id: existingUser._id,
         username: existingUser.username,
+        name: existingUser.name,
+        avatar: existingUser.avatar,
         mobile: existingUser.mobile,
         email: existingUser.email,
       },
