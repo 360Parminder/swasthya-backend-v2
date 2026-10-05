@@ -7,17 +7,23 @@ const { getdata } = require("../Utils/redis");
 const { sendOtp, verifyOtp } = require("../Utils/sendOtp");
 const { getOtp } = require("../Utils/mapstore");
 const { generateUserId } = require("../Utils/generate");
-const { name } = require("ejs");
 
 exports.user_login = async (req, res) => {
   try {
-    const { mobile, password, fcm_token } = req.body;
-    const existingUser = await user_model.findOne({ mobile });
+    const { mobile, email, password, fcm_token } = req.body;
+    const identifier = (mobile || email || '').trim();
+    const existingUser = await user_model.findOne({
+      $or: [
+        { mobile: identifier },
+        { email: identifier.toLowerCase() },
+        { username: identifier.toLowerCase() }
+      ]
+    });
     if (!existingUser) {
       return {
         status: 401,
         success: false,
-        message: "Invalid mobile number or not registered!",
+        message: "Invalid mobile/email or not registered!",
       };
     }
 
@@ -66,6 +72,8 @@ exports.user_login = async (req, res) => {
       user: {
         id: existingUser._id,
         username: existingUser.username,
+        name: existingUser.name,
+        avatar: existingUser.avatar,
         mobile: existingUser.mobile,
         email: existingUser.email,
       },
@@ -92,7 +100,9 @@ exports.user_register = async (req, res) => {
     food_preference,
     weightUnit,
     heightUnit,
-    countryCode
+    countryCode,
+    fcm_token,
+    notificationToken,
   } = req.body;
   console.log(req.body);
 
@@ -148,22 +158,6 @@ exports.user_register = async (req, res) => {
       };
     }
 
-    const {
-      name,
-      mobile,
-      email,
-      password,
-      weight,
-      height,
-      dob,
-      gender,
-      food_preference,
-      weightUnit,
-      heightUnit,
-      countryCode,
-      fcm_token,
-      notificationToken,
-    } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -576,7 +570,8 @@ exports.google_auth = async (req, res) => {
         {
           auth_key: token,
           ...(fcm_token ? { notificationToken: fcm_token } : {}),
-          ...(avatar && !user.avatar ? { avatar } : {}),
+          ...(avatar ? { avatar } : {}),
+          ...(name ? { name } : {}),
         },
         { new: true }
       ).select("-password");
