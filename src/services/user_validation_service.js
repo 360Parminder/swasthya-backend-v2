@@ -568,7 +568,8 @@ exports.google_auth = async (req, res) => {
         {
           auth_key: token,
           ...(fcm_token ? { notificationToken: fcm_token } : {}),
-          ...(avatar && !user.avatar ? { avatar } : {}),
+          ...(avatar ? { avatar } : {}),
+          ...(name ? { name } : {}),
         },
         { new: true }
       ).select("-password");
