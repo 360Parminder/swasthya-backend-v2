@@ -10,13 +10,20 @@ const { generateUserId } = require("../Utils/generate");
 
 exports.user_login = async (req, res) => {
   try {
-    const { mobile, password, fcm_token } = req.body;
-    const existingUser = await user_model.findOne({ mobile });
+    const { mobile, email, password, fcm_token } = req.body;
+    const identifier = (mobile || email || '').trim();
+    const existingUser = await user_model.findOne({
+      $or: [
+        { mobile: identifier },
+        { email: identifier.toLowerCase() },
+        { username: identifier.toLowerCase() }
+      ]
+    });
     if (!existingUser) {
       return {
         status: 401,
         success: false,
-        message: "Invalid mobile number or not registered!",
+        message: "Invalid mobile/email or not registered!",
       };
     }
 
