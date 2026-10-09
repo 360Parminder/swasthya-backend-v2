@@ -6,7 +6,19 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 
 dotenv.config();
+let { connectDB } = require("./db/dbconnection.js");
+
 const app = express();
+
+// Ensure DB is connected before handling any requests (Serverless optimization)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -56,8 +68,6 @@ app.use("/leaderboard", leaderboard);
 // app.use("/", require('./src/routes/relatives_routes.js'));
 app.use("/water", water);
 app.use("/dashboard", dashboard);
-
-let { connectDB } = require("./db/dbconnection.js");
 
 connectDB();
 app.listen(process.env.PORT, () => {
